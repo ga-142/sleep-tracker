@@ -1,0 +1,60 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    environment:
+      DB_PATH: /data/sleep.db
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+    volumes:
+      - sleep_data:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/health', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "8081:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Optional local LLM — only starts with: docker compose --profile ollama up -d
+  # Set in Settings: AI Provider → Local Model (Ollama)
+  # URL to use in Settings: http://ollama:11434
+  ollama:
+    image: ollama/ollama:0.32.0
+    profiles: [ollama]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    # Starts the server and pulls a default model on first run.
+    # Change qwen2.5:7b to any model you prefer (e.g. llama3.2:3b).
+    entrypoint: ["/bin/sh", "-c", "ollama serve & until ollama list 2>/dev/null; do sleep 1; done; ollama pull qwen2.5:7b; wait"]
+    # Uncomment to enable GPU passthrough (requires NVIDIA Container Toolkit):
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+volumes:
+  sleep_data:
+  ollama_data:

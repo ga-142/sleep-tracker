@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sleep Tracker</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/themes/dark.css">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-sm navbar-dark bg-dark border-bottom border-secondary">
+  <div class="container-fluid px-3">
+    <span class="navbar-brand fw-semibold">
+      <i class="bi bi-moon-stars-fill me-2 text-info"></i>Sleep Tracker
+    </span>
+    <ul class="navbar-nav">
+      <li class="nav-item">
+        <a class="nav-link active" href="#" data-tab="dashboard" id="nav-dashboard">
+          <i class="bi bi-grid-1x2 me-1"></i>Dashboard
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#" data-tab="log" id="nav-log">
+          <i class="bi bi-journal-text me-1"></i>Sleep Log
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#" data-tab="ai" id="nav-ai">
+          <i class="bi bi-robot me-1"></i>Sleep Assistant
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#" data-tab="settings" id="nav-settings">
+          <i class="bi bi-gear me-1"></i>Settings
+        </a>
+      </li>
+    </ul>
+  </div>
+</nav>
+
+<!-- Toast container -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index:9999">
+  <div id="app-toast" class="toast align-items-center border-0" role="alert" aria-live="assertive">
+    <div class="d-flex">
+      <div class="toast-body" id="toast-body"></div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid px-3 py-3">
+
+  <!-- ── Period Selector (Dashboard and Log tabs only) ── -->
+  <div id="period-bar" class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+    <label class="text-secondary small mb-0 me-1">Period:</label>
+    <select id="preset-select" class="form-select form-select-sm w-auto">
+      <option value="7">Last 7 days</option>
+      <option value="14">Last 14 days</option>
+      <option value="30" selected>Last 30 days</option>
+      <option value="90">Last 90 days</option>
+      <option value="custom">Custom range…</option>
+    </select>
+    <div id="custom-range" class="d-none d-flex align-items-center gap-2">
+      <input type="text" id="custom-start" class="form-control form-control-sm" placeholder="Start date" style="width:130px">
+      <span class="text-secondary">to</span>
+      <input type="text" id="custom-end" class="form-control form-control-sm" placeholder="End date" style="width:130px">
+      <button id="apply-range" class="btn btn-sm btn-outline-info">Apply</button>
+    </div>
+    <span id="period-label" class="text-secondary small ms-2"></span>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- DASHBOARD TAB                                                  -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <div id="tab-dashboard">
+
+    <!-- Stat Cards -->
+    <div class="row g-3 mb-4" id="stat-cards">
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="card h-100 text-center stat-card">
+          <div class="card-body py-3">
+            <div class="stat-label">Avg SE %</div>
+            <div class="stat-value" id="stat-avg-se">—</div>
+            <div class="stat-sub text-muted small">daily average</div>
+            <div class="stat-trend" id="trend-avg-se"></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="card h-100 text-center stat-card">
+          <div class="card-body py-3">
+            <div class="stat-label">Period SE %</div>
+            <div class="stat-value" id="stat-period-se">—</div>
+            <div class="stat-sub text-muted small">clinical pooled</div>
+            <div class="stat-trend" id="trend-period-se"></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="card h-100 text-center stat-card">
+          <div class="card-body py-3">
+            <div class="stat-label">Avg TST</div>
+            <div class="stat-value" id="stat-avg-tst">—</div>
+            <div class="stat-sub text-muted small">total sleep time</div>
+            <div class="stat-trend" id="trend-avg-tst"></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="card h-100 text-center stat-card">
+          <div class="card-body py-3">
+            <div class="stat-label">Avg SOL</div>
+            <div class="stat-value" id="stat-avg-sol">—</div>
+            <div class="stat-sub text-muted small">sleep onset</div>
+            <div class="stat-trend" id="trend-avg-sol"></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="card h-100 text-center stat-card">
+          <div class="card-body py-3">
+            <div class="stat-label">Avg WASO</div>
+            <div class="stat-value" id="stat-avg-waso">—</div>
+            <div class="stat-sub text-muted small">wake after sleep</div>
+            <div class="stat-trend" id="trend-avg-waso"></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="card h-100 text-center stat-card">
+          <div class="card-body py-3">
+            <div class="stat-label">Entries</div>
+            <div class="stat-value" id="stat-count">—</div>
+            <div class="stat-sub text-muted small">nights logged</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sleep restriction window card -->
+    <div class="row g-3 mb-3" id="sleep-restriction-row">
+      <div class="col-12">
+        <div class="card" id="sleep-restriction-card" style="display:none">
+          <div class="card-body py-3">
+            <div id="sleep-restriction-content"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts (2×2) -->
+    <div class="row g-3">
+      <div class="col-12 col-lg-6">
+        <div class="card">
+          <div class="card-header small text-secondary">Sleep Efficiency % Over Time</div>
+          <div class="card-body chart-container">
+            <canvas id="chart-se"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-lg-6">
+        <div class="card">
+          <div class="card-header small text-secondary">Total Sleep Time Per Night (hours)</div>
+          <div class="card-body chart-container">
+            <canvas id="chart-tst"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-lg-6">
+        <div class="card">
+          <div class="card-header small text-secondary">SOL &amp; WASO Over Time (minutes)</div>
+          <div class="card-body chart-container">
+            <canvas id="chart-sol-waso"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-lg-6">
+        <div class="card">
+          <div class="card-header small text-secondary">Sleep Quality Trend (0–4)</div>
+          <div class="card-body chart-container">
+            <canvas id="chart-quality"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Time in Bed composition (full width) -->
+    <div class="row g-3 mt-0">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header small text-secondary">Time in Bed Composition (hours)</div>
+          <div class="card-body chart-container">
+            <canvas id="chart-tib-composition"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-dashboard -->
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- SLEEP LOG TAB                                                  -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <div id="tab-log" class="d-none">
+
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <div class="d-flex gap-2">
+        <button id="btn-add-entry" class="btn btn-info btn-sm">
+          <i class="bi bi-plus-lg me-1"></i>Add Entry
+        </button>
+      </div>
+      <div class="d-flex gap-2">
+        <button id="btn-download-csv" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-download me-1"></i>Download CSV
+        </button>
+        <button id="btn-download-txt" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-download me-1"></i>Download TXT
+        </button>
+        <button id="btn-export-csv" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-envelope me-1"></i>Email CSV
+        </button>
+        <button id="btn-export-txt" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-envelope me-1"></i>Email TXT
+        </button>
+      </div>
+    </div>
+
+    <div id="log-empty" class="text-center text-muted py-5 d-none">
+      <i class="bi bi-journal-x display-4"></i>
+      <p class="mt-2">No entries for this period. Add one above.</p>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-sm table-hover align-middle sleep-table" id="log-table">
+        <thead class="table-dark sticky-top">
+          <tr>
+            <th>Date</th>
+            <th>Bed</th>
+            <th title="Time started trying to sleep">Tried</th>
+            <th>Rise</th>
+            <th title="Time in Bed">TIB</th>
+            <th title="Sleep Onset Latency — minutes to fall asleep">SOL</th>
+            <th title="Wake After Sleep Onset">WASO</th>
+            <th title="Terminal Wakefulness">TW</th>
+            <th title="Total Sleep Time">TST</th>
+            <th title="Sleep Efficiency %">SE%</th>
+            <th title="Sleep Quality 0–4">Q</th>
+            <th title="Morning Energy 0–4">NRG</th>
+            <th title="Daytime Mood 0–4">Mood</th>
+            <th>Nap</th>
+            <th>Comments</th>
+            <th>Substances</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="log-tbody"></tbody>
+      </table>
+    </div>
+
+  </div><!-- /tab-log -->
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- SLEEP ASSISTANT TAB                                            -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <div id="tab-ai" class="d-none">
+    <div class="ai-layout d-flex gap-3">
+
+      <!-- Session sidebar -->
+      <div class="ai-sidebar">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="small text-secondary fw-semibold text-uppercase" style="letter-spacing:.05em">Sessions</span>
+          <button id="btn-new-session" class="btn btn-info btn-sm px-3">
+            <i class="bi bi-plus-lg me-1"></i>New
+          </button>
+        </div>
+        <div class="text-muted small mb-2" style="font-size:0.72rem">
+          Uses the current period from the Dashboard selector.
+        </div>
+        <div id="session-list"></div>
+      </div>
+
+      <!-- Chat area -->
+      <div class="flex-grow-1" style="min-width:0">
+
+        <!-- Empty state -->
+        <div id="chat-empty" class="ai-empty">
+          <i class="bi bi-robot" style="font-size:2.5rem;color:#2a2d3a"></i>
+          <p class="mt-3 text-muted">Start a new session or pick a past conversation.</p>
+          <p class="text-muted small">The assistant will summarize your sleep data for the selected period<br>and open a chat so you can explore the details.</p>
+          <p class="text-warning-emphasis small">Educational only—it does not diagnose or replace professional care.</p>
+        </div>
+
+        <!-- Active chat window -->
+        <div id="chat-window" class="chat-window d-none">
+          <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+            <span id="chat-period-badge" class="badge bg-secondary"></span>
+            <span id="chat-model-badge" class="badge bg-dark border border-secondary" style="font-size:0.7rem"></span>
+          </div>
+          <div id="chat-messages"></div>
+          <div class="chat-input-area">
+            <textarea id="chat-input" class="form-control"
+                      placeholder="Ask about your sleep data… (Enter to send, Shift+Enter for newline)"
+                      rows="2"></textarea>
+            <button id="btn-chat-send" class="btn btn-info px-3" style="align-self:flex-end">
+              <i class="bi bi-send-fill"></i>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div><!-- /tab-ai -->
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- SETTINGS TAB                                                   -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <div id="tab-settings" class="d-none">
+    <div class="row">
+      <div class="col-12 col-md-7 col-lg-6">
+
+        <!-- AI Provider card -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <i class="bi bi-robot me-2"></i>AI Provider
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="radio" name="ai-provider" id="ai-provider-claude" value="anthropic" checked>
+                <label class="form-check-label" for="ai-provider-claude">
+                  <strong>Claude</strong> (Anthropic) — cloud API
+                </label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="ai-provider" id="ai-provider-ollama" value="ollama">
+                <label class="form-check-label" for="ai-provider-ollama">
+                  <strong>Local Model</strong> (Ollama) — runs on your machine
+                </label>
+              </div>
+            </div>
+
+            <!-- Claude settings -->
+            <div id="claude-settings">
+              <div class="mb-3">
+                <label class="form-label small">API Key</label>
+                <div class="input-group">
+                  <input type="password" id="settings-anthropic-key" class="form-control" placeholder="sk-ant-…">
+                  <button class="btn btn-outline-secondary" type="button" id="toggle-key-vis">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </div>
+                <div class="form-text" id="anthropic-key-status"></div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label small">Model</label>
+                <select id="settings-anthropic-model" class="form-select">
+                  <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 — fast &amp; cheap</option>
+                  <option value="claude-sonnet-4-6" selected>Claude Sonnet 4.6 — recommended</option>
+                  <option value="claude-opus-4-8">Claude Opus 4.8 — most capable</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Ollama settings -->
+            <div id="ollama-settings" class="d-none">
+              <div class="mb-3">
+                <label class="form-label small">Ollama URL</label>
+                <input type="text" id="settings-ollama-url" class="form-control" placeholder="http://ollama:11434">
+              </div>
+              <div class="mb-3">
+                <label class="form-label small">Model</label>
+                <div class="d-flex gap-2">
+                  <select id="settings-ollama-model" class="form-select flex-grow-1">
+                    <option value="">— refresh to list installed models —</option>
+                  </select>
+                  <button id="btn-refresh-ollama-models" class="btn btn-outline-secondary" title="Refresh model list">
+                    <i class="bi bi-arrow-clockwise"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <button id="btn-save-ai-settings" class="btn btn-info btn-sm">
+              <i class="bi bi-floppy me-1"></i>Save AI Settings
+            </button>
+          </div>
+        </div>
+
+        <!-- Sleep Targets card -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <i class="bi bi-bullseye me-2"></i>Sleep Targets
+          </div>
+          <div class="card-body">
+            <p class="text-muted small mb-3">
+              Used by the sleep assistant to frame your data against your personal goals.
+            </p>
+            <div class="row g-3">
+              <div class="col-6">
+                <label class="form-label small">Target rise time</label>
+                <input type="text" id="settings-target-rise" class="form-control" placeholder="06:30">
+              </div>
+              <div class="col-6">
+                <label class="form-label small">Target bedtime <span class="text-muted">(optional)</span></label>
+                <input type="text" id="settings-target-bed" class="form-control" placeholder="23:00">
+              </div>
+              <div class="col-6">
+                <label class="form-label small">Target total sleep time</label>
+                <div class="input-group">
+                  <input type="number" id="settings-target-tst" class="form-control" placeholder="7.5" min="4" max="12" step="0.5">
+                  <span class="input-group-text">hrs</span>
+                </div>
+              </div>
+            </div>
+            <button id="btn-save-targets" class="btn btn-info btn-sm mt-3">
+              <i class="bi bi-floppy me-1"></i>Save Targets
+            </button>
+          </div>
+        </div>
+
+        <!-- About You card -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <i class="bi bi-person-lines-fill me-2"></i>About You
+          </div>
+          <div class="card-body">
+            <p class="text-muted small mb-3">
+              Helps the assistant give you more relevant, personalized context.
+            </p>
+            <div class="row g-3">
+              <div class="col-6">
+                <label class="form-label small">Age</label>
+                <div class="input-group">
+                  <input type="number" id="settings-user-age" class="form-control" placeholder="35" min="10" max="120">
+                  <span class="input-group-text">yrs</span>
+                </div>
+              </div>
+              <div class="col-6">
+                <label class="form-label small">Caffeine cutoff</label>
+                <input type="text" id="settings-caffeine-cutoff" class="form-control" placeholder="14:00">
+              </div>
+              <div class="col-12">
+                <label class="form-label small">How long have you had sleep issues?</label>
+                <select id="settings-sleep-issue-duration" class="form-select">
+                  <option value="">Prefer not to say</option>
+                  <option value="weeks">A few weeks</option>
+                  <option value="months">Several months</option>
+                  <option value="years">A year or more</option>
+                  <option value="lifelong">Most of my life</option>
+                </select>
+              </div>
+              <div class="col-12">
+                <label class="form-label small">Anything else the assistant should know</label>
+                <textarea id="settings-user-context" class="form-control" rows="3"
+                  placeholder="e.g. diagnosed anxiety, shift worker, recently stopped a sleep medication, new baby…"></textarea>
+              </div>
+            </div>
+            <button id="btn-save-about" class="btn btn-info btn-sm mt-3">
+              <i class="bi bi-floppy me-1"></i>Save Profile
+            </button>
+          </div>
+        </div>
+
+        <!-- Email export card -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <i class="bi bi-envelope me-2"></i>Email Export
+          </div>
+          <div class="card-body">
+            <p class="text-muted small mb-3">
+              The address to send sleep log exports to by default.
+              You can always change it at send-time.
+            </p>
+            <div class="mb-3">
+              <label class="form-label small">Default recipient email</label>
+              <input type="email" id="settings-saved-email" class="form-control" placeholder="you@example.com">
+            </div>
+          </div>
+        </div>
+
+        <!-- Gmail SMTP card -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <i class="bi bi-send me-2"></i>Gmail SMTP (outgoing)
+          </div>
+          <div class="card-body">
+            <p class="text-muted small mb-3">
+              Used to send the email. You need a Gmail App Password
+              (not your regular password).
+              Enable 2-Step Verification, then go to
+              <strong>Google Account → Security → App passwords</strong>.
+            </p>
+            <div class="mb-3">
+              <label class="form-label small">Gmail sender address</label>
+              <input type="email" id="settings-smtp-sender" class="form-control" placeholder="sender@gmail.com">
+            </div>
+            <div class="mb-3">
+              <label class="form-label small">App password</label>
+              <div class="input-group">
+                <input type="password" id="settings-smtp-password" class="form-control" placeholder="Leave blank to keep current">
+                <button class="btn btn-outline-secondary" type="button" id="toggle-pw-vis">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+              <div class="form-text" id="smtp-pw-status"></div>
+            </div>
+            <div class="d-flex gap-2 mt-3">
+              <button id="btn-save-settings" class="btn btn-info btn-sm">
+                <i class="bi bi-floppy me-1"></i>Save Settings
+              </button>
+              <button id="btn-test-smtp" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-plug me-1"></i>Test Connection
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div><!-- /tab-settings -->
+
+</div><!-- /container -->
+
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- ENTRY MODAL                                                        -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="entry-modal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="entry-modal-title">Add Sleep Entry</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="entry-id">
+
+        <div class="row g-3">
+
+          <div class="col-12 col-sm-6">
+            <label class="form-label small">Date <span class="text-muted">(night of sleep / yesterday)</span></label>
+            <input type="text" id="f-date" class="form-control" placeholder="YYYY-MM-DD">
+          </div>
+
+          <div class="col-6 col-sm-3">
+            <label class="form-label small">1. Got into bed</label>
+            <input type="text" id="f-bedtime" class="form-control time-input" placeholder="HH:MM">
+          </div>
+
+          <div class="col-6 col-sm-3">
+            <label class="form-label small">2. Tried to sleep</label>
+            <input type="text" id="f-sleep-attempt" class="form-control time-input" placeholder="HH:MM">
+          </div>
+
+          <div class="col-6 col-sm-4">
+            <label class="form-label small">3. Mins to fall asleep <span class="text-muted">(SOL)</span></label>
+            <div class="input-group">
+              <input type="number" id="f-sol" class="form-control" placeholder="0" min="0">
+              <span class="input-group-text">min</span>
+            </div>
+          </div>
+
+          <div class="col-6 col-sm-4">
+            <label class="form-label small">4. # of awakenings</label>
+            <input type="number" id="f-wakeups" class="form-control" placeholder="0" min="0">
+          </div>
+
+          <div class="col-6 col-sm-4">
+            <label class="form-label small">5. Total wake time <span class="text-muted">(WASO)</span></label>
+            <div class="input-group">
+              <input type="number" id="f-waso" class="form-control" placeholder="0" min="0">
+              <span class="input-group-text">min</span>
+            </div>
+          </div>
+
+          <div class="col-6 col-sm-4">
+            <label class="form-label small">6. Final awakening</label>
+            <input type="text" id="f-final-wake" class="form-control time-input" placeholder="HH:MM">
+          </div>
+
+          <div class="col-6 col-sm-4">
+            <label class="form-label small">7. Got out of bed</label>
+            <input type="text" id="f-rise" class="form-control time-input" placeholder="HH:MM">
+          </div>
+
+          <div class="col-12 col-sm-4">
+            <label class="form-label small">8. Sleep quality</label>
+            <select id="f-quality" class="form-select">
+              <option value="0">0 – Very Poor</option>
+              <option value="1">1 – Poor</option>
+              <option value="2" selected>2 – Fair</option>
+              <option value="3">3 – Good</option>
+              <option value="4">4 – Very Good</option>
+            </select>
+          </div>
+
+          <div class="col-6 col-sm-4">
+            <label class="form-label small">9. Morning energy <span class="text-muted">(optional)</span></label>
+            <select id="f-energy" class="form-select">
+              <option value="">Not recorded</option>
+              <option value="0">0 – Exhausted</option>
+              <option value="1">1 – Low</option>
+              <option value="2">2 – Moderate</option>
+              <option value="3">3 – Good</option>
+              <option value="4">4 – Excellent</option>
+            </select>
+          </div>
+
+          <div class="col-6 col-sm-4">
+            <label class="form-label small">10. Daytime mood <span class="text-muted">(optional)</span></label>
+            <select id="f-mood" class="form-select">
+              <option value="">Not recorded</option>
+              <option value="0">0 – Very Low</option>
+              <option value="1">1 – Low</option>
+              <option value="2">2 – Neutral</option>
+              <option value="3">3 – Good</option>
+              <option value="4">4 – Excellent</option>
+            </select>
+          </div>
+
+          <div class="col-12 col-sm-6">
+            <label class="form-label small">11. Nap / doze time yesterday</label>
+            <div class="d-flex gap-2 align-items-center">
+              <div class="input-group">
+                <input type="number" id="f-nap-h" class="form-control" placeholder="0" min="0" max="23">
+                <span class="input-group-text">h</span>
+              </div>
+              <div class="input-group">
+                <input type="number" id="f-nap-m" class="form-control" placeholder="0" min="0" max="59">
+                <span class="input-group-text">m</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label small">12. Comments</label>
+            <textarea id="f-comments" class="form-control" rows="2" placeholder="Anything notable about your sleep…"></textarea>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label small">13. Substances</label>
+            <textarea id="f-substances" class="form-control" rows="2" placeholder="Caffeine, alcohol, medications, supplements…"></textarea>
+          </div>
+
+        </div><!-- /row -->
+
+        <!-- Live calculation preview -->
+        <div class="mt-3 p-3 rounded calc-preview" id="calc-preview">
+          <div class="small text-muted mb-1">Calculated values (live preview)</div>
+          <div class="row g-2 text-center">
+            <div class="col-3">
+              <div class="small text-muted">TIB</div>
+              <div class="fw-semibold" id="prev-tib">—</div>
+            </div>
+            <div class="col-3">
+              <div class="small text-muted">TW</div>
+              <div class="fw-semibold" id="prev-tw">—</div>
+            </div>
+            <div class="col-3">
+              <div class="small text-muted">TST</div>
+              <div class="fw-semibold" id="prev-tst">—</div>
+            </div>
+            <div class="col-3">
+              <div class="small text-muted">SE%</div>
+              <div class="fw-semibold" id="prev-se">—</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /modal-body -->
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-info" id="btn-save-entry">Save Entry</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- EXPORT MODAL                                                       -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="export-modal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="export-modal-title">Export Sleep Log</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label small" for="export-range-preset">Time frame</label>
+          <select id="export-range-preset" class="form-select">
+            <option value="current" selected>Current view</option>
+            <option value="7">Last week</option>
+            <option value="14">Last two weeks</option>
+            <option value="30">Last month</option>
+            <option value="90">Last three months</option>
+            <option value="all">All time</option>
+            <option value="custom">Between dates…</option>
+          </select>
+        </div>
+        <div id="export-custom-range" class="row g-2 mb-3 d-none">
+          <div class="col-sm-6">
+            <label class="form-label small" for="export-start">Start date</label>
+            <input type="text" id="export-start" class="form-control" placeholder="YYYY-MM-DD">
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label small" for="export-end">End date</label>
+            <input type="text" id="export-end" class="form-control" placeholder="YYYY-MM-DD">
+          </div>
+        </div>
+        <p class="text-muted small" id="export-period-label"></p>
+        <div class="mb-3" id="export-recipient-group">
+          <label class="form-label small">Recipient email</label>
+          <input type="email" id="email-recipient" class="form-control" placeholder="you@example.com">
+          <div class="form-text">Change this to send to a different address. It won't affect your saved default.</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label small">Format</label>
+          <div class="d-flex gap-3">
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="export-format" id="fmt-csv" value="csv" checked>
+              <label class="form-check-label" for="fmt-csv">CSV (spreadsheet)</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="export-format" id="fmt-txt" value="txt">
+              <label class="form-check-label" for="fmt-txt">TXT (readable report)</label>
+            </div>
+          </div>
+        </div>
+        <div id="export-status" class="d-none alert alert-danger small"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-info" id="btn-run-export">
+          <i class="bi bi-download me-1"></i>Download
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- DELETE CONFIRM MODAL                                               -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="delete-modal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Delete Entry</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-muted small">
+        Delete the entry for <strong id="delete-date"></strong>? This cannot be undone.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger btn-sm" id="btn-confirm-delete">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.12/dist/purify.min.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/ui.js"></script>
+<script src="/js/charts.js"></script>
+<script src="/js/chat.js"></script>
+<script src="/js/app.js"></script>
+</body>
+</html>

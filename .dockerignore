@@ -1,0 +1,11 @@
+.git
+.github
+.env
+*.db
+*.db-*
+__pycache__
+*.pyc
+.venv
+tests
+Sleep Log.pdf
+CalculateSleepEfficiency.txt
