@@ -1,5 +1,6 @@
 # Sleep Tracker
 
+[![CI](https://github.com/ga-142/sleep-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/ga-142/sleep-tracker/actions/workflows/ci.yml)
 ![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![Flask](https://img.shields.io/badge/Flask-3.1-000000?logo=flask&logoColor=white)
 ![Docker Compose](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
